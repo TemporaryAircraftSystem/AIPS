@@ -1,2 +1,2 @@
 # AIPS
-Aircrafyt Indoor Positioning System
+Aircraft Indoor Positioning System
