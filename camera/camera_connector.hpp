@@ -18,8 +18,7 @@ public:
     void position_is_ready(double x, double y, int i);
 private:
     io_service service;
-    ip::tcp::socket* socketImage = new ip::tcp::socket(service);
-    ip::tcp::socket* socketPosition = new ip::tcp::socket(service);
+    ip::tcp::socket *socket = new ip::tcp::socket(service);
 
 
 };
