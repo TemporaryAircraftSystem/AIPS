@@ -22,4 +22,9 @@ message base_message {
         required uint32 i = 3;
     }
     optional position2d_frame_t position_frame = 22;
+
+    message subscribe_t {
+        required packet_type type = 1;
+    }
+    optional subscribe_t subscribe = 23;
 }

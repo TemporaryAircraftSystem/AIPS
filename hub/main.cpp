@@ -6,7 +6,7 @@ using namespace std;
 
 int main() {
     cout << "Starting AIPS HUB!" << endl;
-    cout << "Binding on port 8934";
+    cout << "Binding on port 8934" << endl;
     boost::asio::io_service service;
     hub_server server(service, 8934);
     service.run();
