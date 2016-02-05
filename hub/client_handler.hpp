@@ -1,57 +1,36 @@
 //
-// Created by semoro on 04.02.16.
+// Created by semoro on 2/5/16.
 //
 
-#ifndef AIPS_CLIENT_HANDLER_H
-#define AIPS_CLIENT_HANDLER_H
+#ifndef AIPS_CLIENT_HANDLER_HPP
+#define AIPS_CLIENT_HANDLER_HPP
 
 
-#include <boost/core/noncopyable.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/system/error_code.hpp>
+class client_handler {
+
+};
 
 #include <boost/asio.hpp>
+#include <boost/scoped_ptr.hpp>
 
-using namespace boost::asio;
 
-class client_handler_t : boost::noncopyable {
-    typedef client_handler_t self_type;
-
-    client_handler_t(io_service *service) : sock_(*service), started_(false) { }
-
+// Database server. The constructor starts it listening on the given
+// port with the given io_service.
+//
+class hub_server {
 public:
-    typedef boost::system::error_code error_code;
-    typedef boost::shared_ptr<client_handler_t> ptr;
+    hub_server(boost::asio::io_service &io_service, unsigned port);
 
-    void accepted() {
-        started_ = true;
-        do_read();
-    }
-
-    static ptr new_(io_service *service) {
-        ptr new_(new client_handler_t(service));
-        return new_;
-    }
-
-    void stop() {
-        if (!started_) return;
-        started_ = false;
-        sock_.close();
-    }
-
-    ip::tcp::socket &sock() { return sock_; }
-
-    void do_read();
+    ~hub_server();
 
 private:
-    ip::tcp::socket sock_;
-    enum {
-        max_msg = 1024
-    };
-    char read_buffer_[max_msg];
-    char write_buffer_[max_msg];
-    bool started_;
+    hub_server();
+
+    void start_accept();
+
+    struct hub_server_impl;
+    boost::scoped_ptr<hub_server_impl> d;
 };
 
 
-#endif //AIPS_CLIENT_HANDLER_H
+#endif //AIPS_CLIENT_HANDLER_HPP
