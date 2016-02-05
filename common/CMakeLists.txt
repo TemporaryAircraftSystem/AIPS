@@ -11,7 +11,7 @@ PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS packets.proto)
 
 
 set(COMMON_HEADER common.hpp settings.hpp packedmessage.h packets.h)
-set(COMMON_SRC common.cpp settings.cpp)
+set(COMMON_SRC common.cpp settings.cpp packets.cpp)
 set(COMMON_FILES ${COMMON_SRC} ${COMMON_HEADER})
 add_library(aips-common ${COMMON_FILES} ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(aips-common yaml-cpp ${PROTOBUF_LIBRARY})

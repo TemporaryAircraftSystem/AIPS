@@ -27,6 +27,17 @@ using boost::uint8_t;
 #define DEBUG true
 
 
+class client_handler_t;
+
+class packet_dispatcher {
+public:
+    virtual void dispatch(PacketPointer ptr, packets::base_message_packet_type type,
+                          boost::shared_ptr<client_handler_t> handler) = 0;
+};
+
+std::vector<packet_dispatcher *> dispatchers;
+
+
 class client_handler_t : public boost::enable_shared_from_this<client_handler_t> {
 public:
     typedef boost::shared_ptr<client_handler_t> Pointer;
@@ -111,8 +122,48 @@ private:
     }
 
     void handle_dispatch(PacketPointer req) {
-
+        std::cout << "dispatch " << dispatchers.size() << std::endl;
+        for (std::vector<packet_dispatcher *>::iterator i = dispatchers.begin(); i != dispatchers.end(); ++i) {
+            packet_dispatcher *ptr = *i;
+            ptr->dispatch(req, req->type(), shared_from_this());
+        }
     }
+};
+
+
+class emic_dispatcher : public packet_dispatcher {
+public:
+    virtual void dispatch(PacketPointer ptr, packets::base_message_packet_type type,
+                          boost::shared_ptr<client_handler_t> handler) {
+        if (type == target_type) {
+            std::cout << "EMIC dispatcher" << std::endl;
+            if (target_handler->get_socket().is_open())
+                send_packet(&target_handler->get_socket(), ptr);
+            else
+                std::cout << "Dispatcher called, but socket closed" << std::endl;
+        }
+
+    };
+public:
+    emic_dispatcher(const packets::base_message_packet_type &target_type,
+                    const boost::shared_ptr<client_handler_t> &target_handler) : target_type(target_type),
+                                                                                 target_handler(target_handler) { }
+
+private:
+    packets::base_message_packet_type target_type;
+    boost::shared_ptr<client_handler_t> target_handler;
+};
+
+class subscribe_dispatcher : public packet_dispatcher {
+public:
+    virtual void dispatch(PacketPointer ptr, packets::base_message_packet_type type,
+                          boost::shared_ptr<client_handler_t> handler) {
+        if (type == packets::base_message_packet_type::base_message_packet_type_SUBSCRIBE) {
+            std::cout << "Subscribed to " << ptr->subscribe().type() << ptr << std::endl;
+            dispatchers.insert(dispatchers.begin(), new emic_dispatcher(ptr->subscribe().type(), handler));
+            std::cout << "Inserted new dispatcher" << std::endl;
+        }
+    };
 };
 
 
@@ -130,6 +181,7 @@ struct hub_server::hub_server_impl {
         // to db to each connection poses no problem since the server is
         // single-threaded.
         //
+
         client_handler_t::Pointer new_connection =
                 client_handler_t::create(acceptor.get_io_service());
 
@@ -159,8 +211,11 @@ struct hub_server::hub_server_impl {
 
 hub_server::hub_server(asio::io_service &io_service, unsigned port)
         : d(new hub_server_impl(io_service, port)) {
+    dispatchers.push_back(new subscribe_dispatcher());
 }
 
 
 hub_server::~hub_server() {
 }
+
+

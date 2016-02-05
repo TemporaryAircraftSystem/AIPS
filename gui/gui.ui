@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>gui</class>
+ <widget class="QMainWindow" name="gui">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>480</height>
+   </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="windowTitle">
+   <string>Position system</string>
+  </property>
+  <property name="documentMode">
+   <bool>false</bool>
+  </property>
+  <property name="dockOptions">
+   <set>QMainWindow::AllowTabbedDocks|QMainWindow::AnimatedDocks</set>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <widget class="QWidget" name="gridLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>631</width>
+      <height>451</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="gridLayout">
+     <property name="sizeConstraint">
+      <enum>QLayout::SetDefaultConstraint</enum>
+     </property>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_pic">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="sizeIncrement">
+        <size>
+         <width>1</width>
+         <height>1</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">Background-color: #000;</string>
+       </property>
+       <property name="locale">
+        <locale language="English" country="UnitedStates"/>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::StyledPanel</enum>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="scaledContents">
+        <bool>true</bool>
+       </property>
+       <property name="wordWrap">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menu">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>640</width>
+     <height>19</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="object_track_settings">
+    <property name="title">
+     <string>Object track</string>
+    </property>
+    <addaction name="ot_start_recording"/>
+    <addaction name="ot_stop_recording"/>
+   </widget>
+   <widget class="QMenu" name="file_menu">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="f_import_settings"/>
+    <addaction name="f_export_settings"/>
+   </widget>
+   <widget class="QMenu" name="view_menu">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="v_show_track"/>
+    <addaction name="v_show_mesh"/>
+   </widget>
+   <addaction name="file_menu"/>
+   <addaction name="object_track_settings"/>
+   <addaction name="view_menu"/>
+  </widget>
+  <action name="actionParameters">
+   <property name="text">
+    <string>Parameters</string>
+   </property>
+  </action>
+  <action name="ot_object_params">
+   <property name="text">
+    <string>Object parameters</string>
+   </property>
+  </action>
+  <action name="camera_settings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="store_settings">
+   <property name="text">
+    <string>Store settings</string>
+   </property>
+  </action>
+  <action name="ot_start_recording">
+   <property name="text">
+    <string>Start recording</string>
+   </property>
+  </action>
+  <action name="v_show_track">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show track</string>
+   </property>
+  </action>
+  <action name="ot_stop_recording">
+   <property name="text">
+    <string>Stop recording</string>
+   </property>
+  </action>
+  <action name="v_show_mesh">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show mesh</string>
+   </property>
+  </action>
+  <action name="f_import_settings">
+   <property name="text">
+    <string>Import settings</string>
+   </property>
+  </action>
+  <action name="f_export_settings">
+   <property name="text">
+    <string>Export settings</string>
+   </property>
+  </action>
+  <action name="actionCamera_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Camera 2</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="view_camera">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Camera 1</string>
+   </property>
+  </action>
+  <action name="actionCamera_5">
+   <property name="text">
+    <string>Camera 2</string>
+   </property>
+  </action>
+  <action name="object_params">
+   <property name="text">
+    <string>Object parameters</string>
+   </property>
+  </action>
+  <action name="camera_settings_2">
+   <property name="text">
+    <string>Camera settings</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+</ui>

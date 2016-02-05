@@ -12,6 +12,9 @@ class client_handler {
 
 #include <boost/asio.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <packets.h>
+
+
 
 
 // Database server. The constructor starts it listening on the given
