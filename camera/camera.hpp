@@ -27,14 +27,12 @@ typedef std::vector<vector<Point2d>> image_points_t;  // projection coordinates
 class camera_t
 {
 public:
-   camera_t(size_t obj_num, size_t idx, camera_connector_t* connector);
+   camera_t( Point3d const & cam_pos, size_t obj_num, size_t idx, camera_connector_t* connector );
    ~camera_t();
-   
+
    void loop();
    
    void stop();
-
-   void detect_cam_coords( image_points_t & img_points );
 
    void import_settings( string const & file_name );
    void export_settings( ofstream & output_file );
@@ -61,10 +59,13 @@ public:
 
 private:
    camera_connector_t* connector_;
+
    obj_detect_t ** obj_detects_;
-   
-   size_t objects_cnt_;
-   
+
+   size_t obj_num_;
+
+   Point3d cam_pos_;
+
    struct camera_settings_t
    {
       double   brightness_hwr_

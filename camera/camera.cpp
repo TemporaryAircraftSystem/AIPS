@@ -10,22 +10,24 @@ using namespace cv;
 /// camera_t
 ///////////////////////
 
-camera_t::camera_t(size_t obj_num, size_t idx, camera_connector_t* connector) :
-     terminate_  (0)
-   , objects_cnt_(obj_num)
+camera_t::camera_t( Point3d const & cam_pos, size_t obj_num, size_t idx, camera_connector_t* connector ) :
+     terminate_(0)
+   , obj_num_  (obj_num)
+   , cam_pos_  (cam_pos)
 {
    connector_ = connector;
+
    ostringstream object_name;
-   
+
    object_name << "camera " << idx;
 
    settings_.set_object_name(object_name.str());
-   
+
    capture_ = new VideoCapture(idx);
-   
-   obj_detects_ = new obj_detect_t * [objects_cnt_];
-   
-   for (size_t i = 0; i < objects_cnt_; ++i)
+
+   obj_detects_ = new obj_detect_t *[obj_num_];
+
+   for (size_t i = 0; i < obj_num_; ++i)
       obj_detects_[i] = new obj_detect_t(i);
 }
 
@@ -33,24 +35,23 @@ void camera_t::loop()
 {
    Mat frame;
    
-   pos_t * pos = new pos_t[objects_cnt_];
-   
+   pos_t * pos = new pos_t[obj_num_];
+
    while(!terminate_)
    {
       get_frame(frame);
-      
-      for (size_t i = 0; i < objects_cnt_; ++i)
+
+      for (size_t i = 0; i < obj_num_; ++i)
       {
          obj_detects_[i]->detect(frame, pos[i]);
-   
-        // emit position_is_ready(pos[i].x, pos[i].y, i);
-          connector_->position_is_ready(pos[i].x, pos[i].y, 0);
+
+         connector_->position_is_ready(pos[i].x, pos[i].y, 0);
       }
-      
-      for (size_t i = 0; i < objects_cnt_; ++i)
+
+      for (size_t i = 0; i < obj_num_; ++i)
       {
          obj_detects_[i]->draw_contours(frame);
-   
+
          obj_detects_[i]->draw_position(frame, pos[i]);
       }
 
@@ -58,28 +59,6 @@ void camera_t::loop()
    }
    
    delete[] pos;
-}
-
-void camera_t::detect_cam_coords( image_points_t & img_points )
-{
-   Mat frame;
-
-   get_frame(frame);
-
-   object_points_t obj_points(1, vector<Point3d>(3));
-
-   obj_points[0][0] = Point3d(0, 0, 0);
-   obj_points[0][1] = Point3d(1, 0, 0);
-   obj_points[0][2] = Point3d(0, 1, 0);
-
-   Mat camera_matrix, dist_coeff;
-
-   vector<Mat> rvecs;
-   vector<Mat> tvecs;
-
-   calibrateCamera(obj_points, img_points, frame.size(), camera_matrix, dist_coeff, rvecs, tvecs);
-
-   solvePnP(obj_points, img_points, camera_matrix, dist_coeff, rvecs, tvecs);
 }
 
 void camera_t::stop()
