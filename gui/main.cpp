@@ -22,6 +22,5 @@ int main(int argc, char **argv) {
         }
 
     }
-    QApplication::exec();
     return 0;
 }
