@@ -60,6 +60,28 @@ void camera_t::loop()
    delete[] pos;
 }
 
+void camera_t::detect_cam_coords( image_points_t & img_points )
+{
+   Mat frame;
+
+   get_frame(frame);
+
+   object_points_t obj_points(1, vector<Point3d>(3));
+
+   obj_points[0][0] = Point3d(0, 0, 0);
+   obj_points[0][1] = Point3d(1, 0, 0);
+   obj_points[0][2] = Point3d(0, 1, 0);
+
+   Mat camera_matrix, dist_coeff;
+
+   vector<Mat> rvecs;
+   vector<Mat> tvecs;
+
+   calibrateCamera(obj_points, img_points, frame.size(), camera_matrix, dist_coeff, rvecs, tvecs);
+
+   solvePnP(obj_points, img_points, camera_matrix, dist_coeff, rvecs, tvecs);
+}
+
 void camera_t::stop()
 {
    terminate_ = 1;

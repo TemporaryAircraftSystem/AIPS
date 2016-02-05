@@ -14,17 +14,18 @@
 //#include <opencv2/features2d.hpp>
 //
 
-
 #include "camera_connector.hpp"
 #include "settings.hpp"
+
 using namespace cv;
 
 class obj_detect_t;
 
+typedef std::vector<vector<Point3d>> object_points_t; // world coordinates
+typedef std::vector<vector<Point2d>> image_points_t;  // projection coordinates
+
 class camera_t
 {
-
-   
 public:
    camera_t(size_t obj_num, size_t idx, camera_connector_t* connector);
    ~camera_t();
@@ -32,11 +33,12 @@ public:
    void loop();
    
    void stop();
-   
+
+   void detect_cam_coords( image_points_t & img_points );
+
    void import_settings( string const & file_name );
    void export_settings( ofstream & output_file );
 
-   
    void set_brightness_hwr( double val );
    void set_contrast_hwr  ( double val );
    void set_saturation_hwr( double val );
