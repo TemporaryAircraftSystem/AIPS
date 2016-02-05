@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include "camera_connector.hpp"
-#include "packets.hpp"
+#include "packets.h"
 /**
  * Connects to HUB, two sockets at (basePort, basePort+1)
  */
@@ -20,16 +20,26 @@ camera_connector_t::camera_connector_t(ip::address *master_addr_ptr, uint16_t ba
 }
 
 
-void camera_connector_t::frame_is_ready(cv::Mat mat) {
-    camera_packet_t *packet = new camera_packet_t(mat);
-    packet_helper::send_packet(socket, (packet_t *) packet);
 
+void camera_connector_t::frame_is_ready(cv::Mat mat) {
+    PacketPointer ptr(new packets::base_message());
+    packets::base_message_camera_frame_t *ptrFrame = new packets::base_message_camera_frame_t();
+    ptr->set_type(packets::base_message::CAMERA_FRAME);
+    ptrFrame->set_cols(mat.cols);
+    ptrFrame->set_rows(mat.rows);
+    ptrFrame->set_data(mat.data, mat.total() * mat.elemSize());
+    ptr->set_allocated_camera_frame(ptrFrame);
+    send_packet(socket, ptr);
 }
 
 
 void camera_connector_t::position_is_ready(double x, double y, int i) {
-    position2d_packet_t *packet = new position2d_packet_t(x, y, i);
-    packet_helper::send_packet(socket, (packet_t *) packet);
-    delete packet;
-
+    PacketPointer ptr(new packets::base_message());
+    ptr->set_type(packets::base_message::POSITION2D_FRAME);
+    packets::base_message_position2d_frame_t *ptrFrame = new packets::base_message_position2d_frame_t();
+    ptrFrame->set_x(x);
+    ptrFrame->set_y(y);
+    ptrFrame->set_i(i);
+    ptr->set_allocated_position_frame(ptrFrame);
+    send_packet(socket, ptr);
 }

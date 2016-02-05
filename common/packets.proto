@@ -1,0 +1,25 @@
+package packets;
+
+
+message base_message {
+    enum packet_type {
+        CAMERA_FRAME = 1;
+        POSITION2D_FRAME = 2;
+        SUBSCRIBE = 3;
+    }
+
+    required packet_type type = 1;
+    message camera_frame_t {
+        required int32 cols = 1;
+        required int32 rows = 2;
+        required bytes data = 3;
+    }
+    optional camera_frame_t camera_frame = 21;
+
+    message position2d_frame_t {
+        required double x = 1;
+        required double y = 2;
+        required uint32 i = 3;
+    }
+    optional position2d_frame_t position_frame = 22;
+}
