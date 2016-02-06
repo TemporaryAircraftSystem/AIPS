@@ -18,6 +18,7 @@
 #include "ui_object_params.h"
 #include "ui_camera_settings.h"
 
+
 using namespace std;
 
 namespace Ui {
@@ -136,6 +137,9 @@ public:
 typedef shared_ptr<camera_menu_t> camera_menu_ptr_t;
 typedef shared_ptr<camera_menu_ptr_t> cameras_menues_t;
 
+class gui;
+
+#include "gui_connector.h"
 class gui : public QMainWindow {
 Q_OBJECT
 
@@ -144,7 +148,9 @@ public:
 
     ~gui();
 
-    void redraw(QImage image);
+    void set_gui_connector(long long gui);
+
+    Q_SLOT void redraw(QImage image);
 
     Q_SLOT void call_record_track();
 

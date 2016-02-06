@@ -2,8 +2,9 @@
 // Created by semoro on 05.02.16.
 //
 
-#ifndef AIPS_GUI_CONNECTOR_HPP
-#define AIPS_GUI_CONNECTOR_HPP
+#pragma once
+
+#include <QObject>
 
 
 #include <stdint.h>
@@ -11,18 +12,24 @@
 #include <packets.h>
 #include "gui.h"
 
+
 using namespace boost::asio;
 
-class gui_connector_t {
-public:
-    gui_connector_t(gui *gui_ptr, ip::address master_addr_ptr, uint16_t basePort);
+class gui_connector_t : public QObject {
+Q_OBJECT
 
+public:
+    gui_connector_t(QObject *parent = 0) : m_packet(
+            boost::shared_ptr<packets::base_message>(new packets::base_message())) { };
+
+    void passParams(gui *, ip::address, uint16_t);
     void loop();
 
+    Q_SIGNAL void frame_received(QImage image);
+
 private:
-    gui *gui_ptr;
     io_service service;
-    vector<uint8_t> m_readbuf;
+    std::vector<uint8_t> m_readbuf;
     ip::tcp::socket *socket = new ip::tcp::socket(service);
     PackedMessage<packets::base_message> m_packet;
 
@@ -31,7 +38,9 @@ private:
     void handlePosition(packets::base_message_position2d_frame_t);
 
     void handleCameraFrame(packets::base_message_camera_frame_t);
+
+
 };
 
 
-#endif //AIPS_GUI_CONNECTOR_HPP
+

@@ -30,7 +30,8 @@ public:
    ~camera_t();
    
    void loop();
-   
+
+    static int FPS;
    void stop();
    
    void import_settings( string const & file_name );
@@ -65,6 +66,8 @@ private:
    
    struct camera_settings_t
    {
+       camera_settings_t() :
+               brightness_swr_(2), contrast_swr_(2) { }
       double   brightness_hwr_
              , contrast_hwr_
              , saturation_hwr_
@@ -101,7 +104,7 @@ public:
    obj_detect_t( size_t idx = 0 );
    ~obj_detect_t();
 
-   void detect( Mat const & frame, pos_t & position );
+    void detect(Mat &frame, pos_t &position);
    
    void draw_contours( Mat & frame );
    void draw_position( Mat & frame, pos_t position );

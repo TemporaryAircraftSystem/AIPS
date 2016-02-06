@@ -36,7 +36,7 @@ gui::gui(size_t cam_num, QWidget *parent) :
 //   connect(ui_->rm_stop_robot, SIGNAL(triggered()), robot_control_.get(), SLOT(stop_robot()));
 }
 
-void gui::redraw(QImage image) {
+Q_SLOT void gui::redraw(QImage image) {
     ui_->label_pic->setPixmap(QPixmap::fromImage(image));
 }
 
@@ -378,4 +378,8 @@ Q_SLOT void camera_settings::set_brightness_software(double val) {
 
 Q_SLOT void camera_settings::set_contrast_software(double val) {
 //   camera_->set_contrast_swr(val);
+}
+
+void gui::set_gui_connector(long long gui) {
+    connect((gui_connector_t *) gui, SIGNAL(frame_received(QImage)), this, SLOT(redraw(QImage)));
 }

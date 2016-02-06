@@ -1,4 +1,4 @@
-#include <chrono>
+#include "boost/chrono.hpp"
 #include <algorithm>
 
 #include "camera.hpp"
@@ -29,32 +29,52 @@ camera_t::camera_t(size_t obj_num, size_t idx, camera_connector_t* connector) :
       obj_detects_[i] = new obj_detect_t(i);
 }
 
+int camera_t::FPS = 0;
+
 void camera_t::loop()
 {
    Mat frame;
-   
+    chrono::time_point<chrono::system_clock> timeStart;
+    double timeAccum = 0;
+    double fpsAccum = 0;
+    int fpsCounter = 0;
+    double deltaTime = 0;
+    timeStart = chrono::system_clock::now();
    pos_t * pos = new pos_t[objects_cnt_];
    
    while(!terminate_)
    {
-      get_frame(frame);
-      
-      for (size_t i = 0; i < objects_cnt_; ++i)
-      {
-         obj_detects_[i]->detect(frame, pos[i]);
-   
-        // emit position_is_ready(pos[i].x, pos[i].y, i);
-          connector_->position_is_ready(pos[i].x, pos[i].y, 0);
-      }
-      
-      for (size_t i = 0; i < objects_cnt_; ++i)
-      {
-         obj_detects_[i]->draw_contours(frame);
-   
-         obj_detects_[i]->draw_position(frame, pos[i]);
-      }
+       deltaTime = chrono::duration_cast<std::chrono::milliseconds>(chrono::system_clock::now() - timeStart).count() /
+                   1000.;
+       timeAccum += deltaTime;
+       fpsAccum += deltaTime;
+       timeStart = chrono::system_clock::now();
+       if (timeAccum > 1. / 60.) {
+           fpsCounter++;
+           get_frame(frame);
 
-       connector_->frame_is_ready(frame);
+           for (size_t i = 0; i < objects_cnt_; ++i) {
+               obj_detects_[i]->detect(frame, pos[i]);
+
+               // emit position_is_ready(pos[i].x, pos[i].y, i);
+               connector_->position_is_ready(pos[i].x, pos[i].y, 0);
+           }
+
+           for (size_t i = 0; i < objects_cnt_; ++i) {
+               obj_detects_[i]->draw_contours(frame);
+
+               obj_detects_[i]->draw_position(frame, pos[i]);
+           }
+
+
+           connector_->frame_is_ready(frame);
+           timeAccum = 0;
+       }
+       if (fpsAccum >= 1) {
+           fpsAccum = 0;
+           FPS = fpsCounter;
+           fpsCounter = 0;
+       }
    }
    
    delete[] pos;
@@ -212,7 +232,7 @@ obj_detect_t::~obj_detect_t()
 {
 }
 
-void obj_detect_t::detect( Mat const & origin_frame, pos_t & position )
+void obj_detect_t::detect(Mat &origin_frame, pos_t &position)
 {
    Mat   frame
        , threshold_frm;
@@ -278,16 +298,16 @@ void obj_detect_t::detect( Mat const & origin_frame, pos_t & position )
 
    time_point = chrono::system_clock::now();
 
-   fps_string << "FPS: " << (60. / time);
+    fps_string << "FPS: " << camera_t::FPS;
 
-   putText(frame, fps_string.str(), Point2i(10, 30), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255));
+    putText(origin_frame, fps_string.str(), Point2i(10, 30), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255));
 
    fps_string.str("");
    fps_string.clear();
 
    fps_string << "Position: " << "[" << position.x << ", " << position.y << "]";
 
-   putText(frame, fps_string.str(), Point2i(10, 60), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255));
+    putText(origin_frame, fps_string.str(), Point2i(10, 60), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255));
 
    fps_string.str("");
    fps_string.clear();

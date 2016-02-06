@@ -1,7 +1,8 @@
-#include "packets.pb.h"
+
 #include "packedmessage.h"
 #include <vector>
 #include <boost/asio.hpp>
+#include <packets.pb.h>
 
 typedef boost::shared_ptr<packets::base_message> PacketPointer;
 
