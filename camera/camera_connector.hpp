@@ -14,6 +14,13 @@ extern "C" {
 using namespace boost::asio;
 
 
+struct x264_i_pack {
+    uint8_t *r;
+    uint8_t *g;
+    uint8_t *b;
+    int w, h;
+};
+
 class camera_connector_t {
 public:
     camera_connector_t(ip::address *master_addr_ptr, uint16_t basePort);
@@ -29,8 +36,9 @@ private:
 
     x264_picture_t pic_in;
     x264_picture_t pic_out;
-    uchar *frame;
+    uint8_t *frame;
     size_t buffer_size_ = 0;
+    x264_i_pack colorpack;
 };
 
 

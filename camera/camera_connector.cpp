@@ -3,6 +3,8 @@
 //
 
 #include <iostream>
+#include <opencv2/imgproc.hpp>
+
 
 extern "C" {
 #include "x264.h"
@@ -42,21 +44,31 @@ void camera_connector_t::initX264(int w, int h) {
     x264Param.i_log_level = X264_LOG_DEBUG;
     x264_param_apply_profile(&x264Param, "baseline");
     encoder = x264_encoder_open(&x264Param);
-
+    x264_picture_alloc(&pic_in, X264_CSP_I420, w, h);
+    pic_in.img.i_plane = 3;
+    pic_in.img.i_stride[0] = w;
+    pic_in.img.i_stride[1] = w;
+    pic_in.img.i_stride[2] = w;
+    pic_in.i_type = X264_TYPE_AUTO;
+    colorpack.h = h;
+    colorpack.w = w;
+    colorpack.r = (uchar *) malloc(w * h);
+    colorpack.g = (uchar *) malloc(w * h);
+    colorpack.b = (uchar *) malloc(w * h);
 }
 
+PacketPointer ptr(new packets::base_message());
 int frameNumber = 0;
 void camera_connector_t::frame_is_ready(cv::Mat mat) {
     if (encoder == nullptr) {
+        std::cout << "init x264\n";
         initX264(mat.cols, mat.rows);
     }
+    cv::Mat myuv(mat.rows + mat.rows / 2, mat.cols, CV_8UC1);
+    cv::cvtColor(mat, myuv, cv::COLOR_RGB2YUV_I420);
+    std::cout << mat.channels() << std::endl;
 
-    x264_picture_alloc(&pic_in, X264_CSP_RGB, mat.cols, mat.rows);
-    pic_in.img.i_csp = X264_CSP_RGB;
-    pic_in.img.i_plane = 1;
-    pic_in.img.i_stride[0] = 3 * mat.cols;
-    pic_in.i_type = X264_TYPE_AUTO;
-    pic_in.img.plane[0] = mat.data;
+    pic_in.img.plane[0] = myuv.data;
     pic_in.i_pts = frameNumber;
     frameNumber++;
     int i_nals = 0;
@@ -67,19 +79,20 @@ void camera_connector_t::frame_is_ready(cv::Mat mat) {
             if (buffer_size_ > 0)
                 free(frame);
             buffer_size_ = frame_size;
-            frame = (uchar *) malloc(buffer_size_);
+            frame = (uint8_t *) malloc(buffer_size_);
         }
+
         int p = 0;
         for (int i = 0; i < i_nals; i++) {
             x264_nal_encode(encoder, frame + p, &nals[i]);
             p += nals[i].i_payload;
         }
-        PacketPointer ptr(new packets::base_message());
+
         packets::base_message_camera_frame_t *ptrFrame = new packets::base_message_camera_frame_t();
         ptr->set_type(packets::base_message::CAMERA_FRAME);
         ptrFrame->set_cols(mat.cols);
         ptrFrame->set_rows(mat.rows);
-        ptrFrame->set_data(frame, buffer_size_);
+        ptrFrame->set_data(frame, 100);
         ptr->set_allocated_camera_frame(ptrFrame);
         send_packet(socket, ptr);
     }
