@@ -3,6 +3,10 @@
 //
 
 #include <iostream>
+
+extern "C" {
+#include "x264.h"
+}
 #include "camera_connector.hpp"
 #include "packets.h"
 /**
@@ -17,19 +21,68 @@ camera_connector_t::camera_connector_t(ip::address *master_addr_ptr, uint16_t ba
         std::cerr << e.code() << std::endl;
         exit(1);
     }
+
 }
 
+void camera_connector_t::initX264(int w, int h) {
+    x264_param_t x264Param;
+    x264_param_default_preset(&x264Param, "ultrafast", "zerolatency");
+    x264Param.i_threads = 1;
+    x264Param.i_width = w;
+    x264Param.i_height = h;
+    x264Param.i_fps_num = 30;
+    x264Param.i_fps_den = 1;
+    x264Param.i_keyint_max = 30;
+    x264Param.b_intra_refresh = 1;
+    x264Param.rc.i_rc_method = X264_RC_CRF;
+    x264Param.rc.f_rf_constant = 25;
+    x264Param.rc.f_rf_constant_max = 35;
+    x264Param.b_repeat_headers = 1;
+    x264Param.b_annexb = 1;
+    x264Param.i_log_level = X264_LOG_DEBUG;
+    x264_param_apply_profile(&x264Param, "baseline");
+    encoder = x264_encoder_open(&x264Param);
 
+}
 
+int frameNumber = 0;
 void camera_connector_t::frame_is_ready(cv::Mat mat) {
-    PacketPointer ptr(new packets::base_message());
-    packets::base_message_camera_frame_t *ptrFrame = new packets::base_message_camera_frame_t();
-    ptr->set_type(packets::base_message::CAMERA_FRAME);
-    ptrFrame->set_cols(mat.cols);
-    ptrFrame->set_rows(mat.rows);
-    ptrFrame->set_data(mat.data, mat.total() * mat.elemSize());
-    ptr->set_allocated_camera_frame(ptrFrame);
-    send_packet(socket, ptr);
+    if (encoder == nullptr) {
+        initX264(mat.cols, mat.rows);
+    }
+
+    x264_picture_alloc(&pic_in, X264_CSP_RGB, mat.cols, mat.rows);
+    pic_in.img.i_csp = X264_CSP_RGB;
+    pic_in.img.i_plane = 1;
+    pic_in.img.i_stride[0] = 3 * mat.cols;
+    pic_in.i_type = X264_TYPE_AUTO;
+    pic_in.img.plane[0] = mat.data;
+    pic_in.i_pts = frameNumber;
+    frameNumber++;
+    int i_nals = 0;
+    int frame_size = x264_encoder_encode(encoder, &nals, &i_nals, &pic_in, &pic_out);
+    if (frame_size > 0) {
+        if (frame_size > buffer_size_) {
+            std::cout << "Resized buf\n";
+            if (buffer_size_ > 0)
+                free(frame);
+            buffer_size_ = frame_size;
+            frame = (uchar *) malloc(buffer_size_);
+        }
+        int p = 0;
+        for (int i = 0; i < i_nals; i++) {
+            x264_nal_encode(encoder, frame + p, &nals[i]);
+            p += nals[i].i_payload;
+        }
+        PacketPointer ptr(new packets::base_message());
+        packets::base_message_camera_frame_t *ptrFrame = new packets::base_message_camera_frame_t();
+        ptr->set_type(packets::base_message::CAMERA_FRAME);
+        ptrFrame->set_cols(mat.cols);
+        ptrFrame->set_rows(mat.rows);
+        ptrFrame->set_data(frame, buffer_size_);
+        ptr->set_allocated_camera_frame(ptrFrame);
+        send_packet(socket, ptr);
+    }
 }
 
 

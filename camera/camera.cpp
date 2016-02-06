@@ -49,7 +49,7 @@ void camera_t::loop()
        timeAccum += deltaTime;
        fpsAccum += deltaTime;
        timeStart = chrono::system_clock::now();
-       if (timeAccum > 1. / 60.) {
+       if (timeAccum > 1. / 30.) {
            fpsCounter++;
            get_frame(frame);
 

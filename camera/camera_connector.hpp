@@ -8,6 +8,9 @@
 #include <boost/asio.hpp>
 #include <opencv2/core/mat.hpp>
 
+extern "C" {
+#include "x264.h"
+}
 using namespace boost::asio;
 
 
@@ -19,8 +22,15 @@ public:
 private:
     io_service service;
     ip::tcp::socket *socket = new ip::tcp::socket(service);
+    x264_t *encoder = nullptr;
+    x264_nal_t *nals;
 
+    void initX264(int w, int h);
 
+    x264_picture_t pic_in;
+    x264_picture_t pic_out;
+    uchar *frame;
+    size_t buffer_size_ = 0;
 };
 
 
