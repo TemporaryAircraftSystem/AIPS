@@ -26,7 +26,7 @@ class camera_t
 
    
 public:
-   camera_t(size_t obj_num, size_t idx, camera_connector_t* connector);
+   camera_t(size_t obj_num, int idx, camera_connector_t* connector);
    ~camera_t();
    
    void loop();

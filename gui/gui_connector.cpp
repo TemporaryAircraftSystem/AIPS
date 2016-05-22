@@ -7,8 +7,9 @@
 #include "gui_connector.h"
 
 
-
 void gui_connector_t::loop() {
+
+
     PacketPointer pp(new packets::base_message());
     pp->set_type(packets::base_message_packet_type_SUBSCRIBE);
     packets::base_message_subscribe_t *ptrFrame = new packets::base_message_subscribe_t();
@@ -47,6 +48,9 @@ void gui_connector_t::handlePosition(packets::base_message_position2d_frame_t t)
 }
 
 void gui_connector_t::handleCameraFrame(packets::base_message_camera_frame_t packet) {
+
+
+
     QImage img((const unsigned char *) (packet.data().c_str()), packet.cols(), packet.rows(),
                QImage::Format_RGB888);
     emit frame_received(img);

@@ -3,14 +3,13 @@
 //
 
 #include <iostream>
-#include <opencv2/imgproc.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 
-extern "C" {
-#include "x264.h"
-}
 #include "camera_connector.hpp"
 #include "packets.h"
+
+
 /**
  * Connects to HUB, two sockets at (basePort, basePort+1)
  */
@@ -18,84 +17,49 @@ extern "C" {
 camera_connector_t::camera_connector_t(ip::address *master_addr_ptr, uint16_t basePort) {
     try {
         socket->connect(ip::tcp::endpoint(*master_addr_ptr, basePort));
+        std::cout << "Connected to HUB\n";
     } catch (boost::system::system_error e) {
         std::cerr << "Could not connect to HUB, program stopped" << std::endl;
         std::cerr << e.code() << std::endl;
         exit(1);
     }
+    out.open("/home/semoro/out.264", std::ios::binary | std::ios::out);
 
-}
-
-void camera_connector_t::initX264(int w, int h) {
-    x264_param_t x264Param;
-    x264_param_default_preset(&x264Param, "ultrafast", "zerolatency");
-    x264Param.i_threads = 1;
-    x264Param.i_width = w;
-    x264Param.i_height = h;
-    x264Param.i_fps_num = 30;
-    x264Param.i_fps_den = 1;
-    x264Param.i_keyint_max = 30;
-    x264Param.b_intra_refresh = 1;
-    x264Param.rc.i_rc_method = X264_RC_CRF;
-    x264Param.rc.f_rf_constant = 25;
-    x264Param.rc.f_rf_constant_max = 35;
-    x264Param.b_repeat_headers = 1;
-    x264Param.b_annexb = 1;
-    x264Param.i_log_level = X264_LOG_DEBUG;
-    x264_param_apply_profile(&x264Param, "baseline");
-    encoder = x264_encoder_open(&x264Param);
-    x264_picture_alloc(&pic_in, X264_CSP_I420, w, h);
-    pic_in.img.i_plane = 3;
-    pic_in.img.i_stride[0] = w;
-    pic_in.img.i_stride[1] = w;
-    pic_in.img.i_stride[2] = w;
-    pic_in.i_type = X264_TYPE_AUTO;
-    colorpack.h = h;
-    colorpack.w = w;
-    colorpack.r = (uchar *) malloc(w * h);
-    colorpack.g = (uchar *) malloc(w * h);
-    colorpack.b = (uchar *) malloc(w * h);
 }
 
 PacketPointer ptr(new packets::base_message());
-int frameNumber = 0;
+
+int nextPTS() {
+    static int static_pts = 0;
+    return (static_pts++);
+}
+
 void camera_connector_t::frame_is_ready(cv::Mat mat) {
-    if (encoder == nullptr) {
-        std::cout << "init x264\n";
-        initX264(mat.cols, mat.rows);
+    if (codecContext == nullptr) {
+        initCodec(mat.cols, mat.rows);
     }
-    cv::Mat myuv(mat.rows + mat.rows / 2, mat.cols, CV_8UC1);
-    cv::cvtColor(mat, myuv, cv::COLOR_RGB2YUV_I420);
-    std::cout << mat.channels() << std::endl;
 
-    pic_in.img.plane[0] = myuv.data;
-    pic_in.i_pts = frameNumber;
-    frameNumber++;
-    int i_nals = 0;
-    int frame_size = x264_encoder_encode(encoder, &nals, &i_nals, &pic_in, &pic_out);
-    if (frame_size > 0) {
-        if (frame_size > buffer_size_) {
-            std::cout << "Resized buf\n";
-            if (buffer_size_ > 0)
-                free(frame);
-            buffer_size_ = frame_size;
-            frame = (uint8_t *) malloc(buffer_size_);
-        }
+    uint8_t *inData[1] = {mat.data};
+    int inLinesize[1] = {3 * mat.cols};
+    sws_scale(swsContext, (const uint8_t *const *) inData, inLinesize, 0, mat.rows, picture->data, picture->linesize);
+    int got_packet = 0;
+    picture->pts = nextPTS();
 
-        int p = 0;
-        for (int i = 0; i < i_nals; i++) {
-            x264_nal_encode(encoder, frame + p, &nals[i]);
-            p += nals[i].i_payload;
-        }
+    int code = avcodec_encode_video2(codecContext, codecPacket, picture, &got_packet);
 
+    if (got_packet) {
         packets::base_message_camera_frame_t *ptrFrame = new packets::base_message_camera_frame_t();
         ptr->set_type(packets::base_message::CAMERA_FRAME);
         ptrFrame->set_cols(mat.cols);
         ptrFrame->set_rows(mat.rows);
-        ptrFrame->set_data(frame, 100);
+        ptrFrame->set_data(codecPacket->data, codecPacket->size);
+        out.write((const char *) codecPacket->data, codecPacket->size);
+        out.flush();
         ptr->set_allocated_camera_frame(ptrFrame);
         send_packet(socket, ptr);
     }
+    av_free_packet(codecPacket);
+
 }
 
 
@@ -109,3 +73,73 @@ void camera_connector_t::position_is_ready(double x, double y, int i) {
     ptr->set_allocated_position_frame(ptrFrame);
     send_packet(socket, ptr);
 }
+
+
+#define RNDTO2(X) ( ( (X) & 0xFFFFFFFE ) )
+#define RNDTO32(X) ( ( (X) % 32 ) ? ( ( (X) + 32 ) & 0xFFFFFFE0 ) : (X) )
+
+void camera_connector_t::initCodec(int w, int h) {
+
+    std::cout << w << " " << h << std::endl;
+    codec = avcodec_find_encoder(CODEC_ID_H264);
+    if (!codec) {
+        fprintf(stderr, "codec not found\n");
+        exit(1);
+    }
+
+    codecContext = avcodec_alloc_context3(codec);
+    picture = av_frame_alloc();
+    av_log_set_level(AV_LOG_DEBUG);
+    codecContext->width = w;
+    codecContext->height = h;
+    codecContext->bit_rate = (int) (outputBufSize * 4);
+
+    codecContext->time_base = (AVRational) {1, 30};
+    //codecContext->max_b_frames = 0;
+    codecContext->gop_size = 10;
+    codecContext->pix_fmt = PIX_FMT_YUV420P;
+
+    AVDictionary * codec_options( 0 );
+    av_dict_set( &codec_options, "preset", "veryfast", 0 );
+
+    avcodec_open2(codecContext, codec, &codec_options);
+
+
+    swsContext = sws_getContext(w, h,
+                                AV_PIX_FMT_BGR24, w, h,
+                                AV_PIX_FMT_YUV420P, 0, 0, 0, 0);
+
+
+    int width = RNDTO2 (codecContext->width);
+    int height = RNDTO2 (codecContext->height);
+    int ystride = RNDTO32 (width);
+    int uvstride = RNDTO32 (width / 2);
+    int ysize = ystride * height;
+    int vusize = uvstride * (height / 2);
+    int size = ysize + (2 * vusize);
+
+
+    pictureBuf = (uint8_t *) malloc(size);
+    pictureSize = size;
+
+    picture->data[0] = pictureBuf;
+    picture->data[1] = pictureBuf + ysize;
+    picture->data[2] = pictureBuf + ysize + vusize;
+    picture->linesize[0] = ystride;
+    picture->linesize[1] = uvstride;
+    picture->linesize[2] = uvstride;
+    picture->format = codecContext->pix_fmt;
+    picture->width = w;
+    picture->height = h;
+
+    codecPacket = (AVPacket *) av_mallocz(sizeof(AVPacket));
+
+    av_init_packet(codecPacket);
+    codecPacket->data = nullptr;
+    codecPacket->size = 0;
+
+
+    std::cout << "Init avcodec finished\n";
+}
+
+
